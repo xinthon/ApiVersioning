@@ -63,20 +63,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Define the API version set
-ApiVersionSet apiVersionSet = app.NewApiVersionSet()
-    .HasApiVersion(new ApiVersion(1, 0))
-    .HasApiVersion(new ApiVersion(2, 0))
-    .ReportApiVersions()
-    .Build();
-
-// Route group for version 1 and 2
-RouteGroupBuilder versionGroup = app.MapGroup("/api/v{apiVersion:apiVersion}")
-    .WithApiVersionSet(apiVersionSet)
-    .HasApiVersion(1, 0)  // Version 1
-    .HasApiVersion(2, 0); // Version 2
-
-versionGroup.MapGet("generateToken", (JwtProvider _jwt) =>
+app.MapGet("generateToken", (JwtProvider _jwt) =>
 {
     Claim[] claims = [
         new Claim(ClaimTypes.Name, "Test App"),
@@ -89,6 +76,20 @@ versionGroup.MapGet("generateToken", (JwtProvider _jwt) =>
         refreshToken = _jwt.GenerateRefreshToken()
     };
 });
+
+
+// Define the API version set
+ApiVersionSet apiVersionSet = app.NewApiVersionSet()
+    .HasApiVersion(new ApiVersion(1, 0))
+    .HasApiVersion(new ApiVersion(2, 0))
+    .ReportApiVersions()
+    .Build();
+
+// Route group for version 1 and 2
+RouteGroupBuilder versionGroup = app.MapGroup("/api/v{apiVersion:apiVersion}")
+    .WithApiVersionSet(apiVersionSet)
+    .HasApiVersion(1, 0)  // Version 1
+    .HasApiVersion(2, 0); // Version 2
 
 // Endpoint for version 1
 versionGroup.MapGet("/users", () =>
@@ -103,5 +104,12 @@ versionGroup.MapGet("/users", () =>
     return "This is version 2";
 })
 .MapToApiVersion(2, 0);
+
+versionGroup.MapGet("/protected", () =>
+{
+    return "this is a protected route";
+})
+.MapToApiVersion(1, 0)
+.RequireAuthorization();
 
 app.Run();
