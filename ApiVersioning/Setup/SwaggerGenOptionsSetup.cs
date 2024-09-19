@@ -23,19 +23,19 @@ public class SwaggerGenOptionsSetup : IConfigureOptions<SwaggerGenOptions>
 
         // Add a global security requirement to use the defined scheme
         options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
         {
-            new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
+                new OpenApiSecurityScheme
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = JwtBearerDefaults.AuthenticationScheme
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = JwtBearerDefaults.AuthenticationScheme
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
 
         // Configure additional Swagger options if needed
         options.SwaggerDoc("v1", new OpenApiInfo

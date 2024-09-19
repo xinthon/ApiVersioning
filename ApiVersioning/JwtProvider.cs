@@ -35,6 +35,7 @@ public class JwtProvider
             Subject = new ClaimsIdentity(claims),
             Audience = _jwtOption.Audience,
             Issuer = _jwtOption.Issuer,
+            Expires = DateTime.UtcNow.AddMinutes(15),
             SigningCredentials = credentials
         };
 
