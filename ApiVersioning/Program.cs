@@ -1,5 +1,9 @@
+using System.Security.Claims;
+using ApiVersioning.Setup;
 using Asp.Versioning;
 using Asp.Versioning.Builder;
+using ApiVersioning;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,15 +13,40 @@ builder.Services.AddApiVersioning(options =>
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
-    options.ApiVersionReader = ApiVersionReader.Combine(
-        new UrlSegmentApiVersionReader(),
+    options.ApiVersionReader = ApiVersionReader
+        .Combine(new UrlSegmentApiVersionReader(), 
         new HeaderApiVersionReader("X-ApiVersion"));
-}).AddApiExplorer();
+})
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+});
+
+
+builder.Services.AddCors(options => 
+{
+    options.AddPolicy("AllowCorsPolicy", builder => 
+    {
+        builder.SetIsOriginAllowed(origin => true);
+        builder.AllowAnyHeader();
+        builder.AllowAnyMethod();
+    });
+});
+
+builder.Services.AddScoped<JwtProvider>();
+// Authentication
+builder.Services.ConfigureOptions<JwtOptionsSetup>();
+builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+
+// SwaggerGen
+builder.Services.AddSwaggerGen();
+builder.Services.ConfigureOptions<SwaggerGenOptionsSetup>();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
@@ -46,6 +75,20 @@ RouteGroupBuilder versionGroup = app.MapGroup("/api/v{apiVersion:apiVersion}")
     .WithApiVersionSet(apiVersionSet)
     .HasApiVersion(1, 0)  // Version 1
     .HasApiVersion(2, 0); // Version 2
+
+versionGroup.MapGet("generateToken", (JwtProvider _jwt) =>
+{
+    Claim[] claims = [
+        new Claim(ClaimTypes.Name, "Test App"),
+        new Claim(ClaimTypes.Uri, "https://localhost:7039"),
+    ];
+
+    return new 
+    {
+        accessToken = _jwt.GenerateToken(claims),
+        refreshToken = _jwt.GenerateRefreshToken()
+    };
+});
 
 // Endpoint for version 1
 versionGroup.MapGet("/users", () =>
